@@ -46,7 +46,7 @@ object tour {
       val qworker =
         ZIO.uninterruptible {
           for {
-            a <- ZIO.interruptible(queue.take)
+            a <- ZIO.interruptible(queue.take) //the only interruptible part in the non-interruptible region
             _ <- worker(a).onError(_ => queue.offer(a))
           } yield ()
         }.forever
@@ -54,7 +54,7 @@ object tour {
       val qworkers = List.fill(count)(qworker)
 
       (for {
-        fiber <- ZIO.forkAll(qworkers)
+        fiber <- ZIO.forkAll(qworkers) //when one is failing, it terminates all (waiting for the uninterruptible)
         list  <- fiber.join
       } yield list.head).flip
     }

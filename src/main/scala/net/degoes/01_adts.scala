@@ -1,6 +1,8 @@
 package net.degoes
 
 import java.time.Instant
+import java.time.YearMonth
+import java.time.Duration
 
 /*
  * INTRODUCTION
@@ -17,7 +19,23 @@ import java.time.Instant
  *
  * Consider an e-commerce application that allows users to purchase products.
  */
-object credit_card {
+
+object ATD { // a data type made of sums and products, recursively
+  
+  //product type
+  final case class Person(name: String, age: Int) //  String * Int (cartesian product)
+
+  //sum type
+  sealed trait Color
+  object Color {
+    case object Red extends Color
+    case object Green extends Color
+    case object Blue extends Color
+    final case class Custom(red: Int, green: Int, blue: Int) extends Color 
+    final case class CustomPolymorphic[A](red: A, green: A, blue: A) extends Color  //this is a family of colors that can work with Int, Double etc
+  }
+}
+ object credit_card {
 
   /**
    * EXERCISE 1
@@ -30,7 +48,18 @@ object credit_card {
    *  * Expiration date
    *  * Security code
    */
-  type CreditCard
+  // v1: number can't have leading zeroes, security code can be negative, name can be empty etc
+  // But sometimes it can be painful to create an ADT for everything. A smart constructor is most of the time enough
+  // final case class CreditCard(number: BigInt, name: String, expDate: YearMonth, securityCode: Int) 
+  final case class CreditCard(number: BigInt, name: Name, expDate: YearMonth, securityCode: Int) 
+
+  sealed abstract case class Name private (name: String)
+  object Name {
+    // --> SMART CONSTRUCTOR <--
+    def fromString(name: String): Option[Name] = 
+      if (name.trim.length == 0) None
+      else Some(new Name(name) {})
+  }
 
   /**
    * EXERCISE 2
@@ -40,7 +69,25 @@ object credit_card {
    * or a digital product, such as a book or movie, or access to an event, such
    * as a music concert or film showing.
    */
-  type Product
+  sealed trait Product
+  object Product {
+    sealed trait Physical extends Product
+    object Physical {
+      case class Milk(gallons: Int) extends Physical
+    }
+
+    sealed trait Digital extends Product
+    object Digital {
+      case class Book(title: String, isbn: String) extends Digital
+      case class Movie(title: String) extends Digital
+    }
+
+    sealed trait Event extends Product
+    object Event {
+      case class Concert(artist: String, date: Instant) extends Event
+      case class Film(theater: String, movie: String, date: Instant)  extends Event
+    }
+  }
 
   /**
    * EXERCISE 3
@@ -49,7 +96,14 @@ object credit_card {
    * of a product price, which could be one-time purchase fee, or a recurring
    * fee on some regular interval.
    */
-  type PricingScheme
+  sealed trait PricingScheme
+  object PricingScheme {
+    final case class OneTime(fee: BigDecimal) extends PricingScheme
+    final case class Recurring(fee: BigDecimal, interval: Duration) extends PricingScheme
+  }
+
+  sealed trait ChessColor
+  case object Black extends ChessColor
 }
 
 /**
@@ -97,6 +151,49 @@ object events {
 
 }
 
+ /*
+  * We could equally have a sum of sum of products, with a sealed trait Event{id, time}
+  */
+object eventsPieroWay {
+  sealed trait Event
+  object Event {
+    case class DeviceEvent(id: Int, time: Instant, deviceId: Int, details: DeviceEvent.Details) extends Event
+    object DeviceEvent {
+      sealed trait Details
+      object Details {
+        case class SensorUpdated(reading: Option[Double]) extends Details
+        case class DeviceActivated(deviceId: Int) extends Details
+      }
+    }
+    case class UserEvent(id: Int, time: Instant, deviceId: Int, userName: String, details: UserEvent.Details) extends Event
+    object UserEvent {
+      sealed trait Details
+      case class UserPurchase(item: String, price: Double) extends Details
+      case object UserAccountCreated extends Details
+    }
+  }
+}
+
+// --> why not factoring out common stuff in a sealed trait? Because with this I have to repeat the shared fields
+// while with a case class at top level I am able to copy stuff even without knowing the details about A
+object eventsJohnsWay {
+  final case class Event(id: Int, time: Instant, body: Payload)
+  sealed trait Payload
+  object Payload {
+  sealed trait UserEvent extends Payload
+    object UserEvent {
+      final case class UserPurchase(val item: String, val price: Double, val userName: String) extends UserEvent
+      final case class UserAccountCreated(val userName: String) extends UserEvent
+    }
+    
+    sealed trait DeviceEvent extends Payload
+    object DeviceEvent {
+      final case class SensorUpdated(val deviceId: Int, val reading: Option[Double]) extends DeviceEvent
+      final case class DeviceActivated(val deviceId: Int, val time: Instant) extends DeviceEvent
+    }
+  }
+}
+
 /**
  * DOCUMENT EDITING - EXERCISE SET 4
  *
@@ -114,7 +211,7 @@ object documents {
    * Using only sealed traits and case classes, create a simplified but somewhat
    * realistic model of a Document.
    */
-  type Document
+  case class Document(docId: DocId, docContent: DocContent, owner: UserId)
 
   /**
    * EXERCISE 2
@@ -123,7 +220,20 @@ object documents {
    * type that a given user might have with respect to a document. For example,
    * some users might have read-only permission on a document.
    */
-  type AccessType
+  sealed trait AccessType { self =>
+    def includesRead: Boolean =
+      self match {
+        case AccessType.None => false
+        case AccessType.Read => true
+        case AccessType.ReadWrite => true
+
+      }
+  }
+  object AccessType {
+    case object None extends AccessType
+    case object ReadWrite extends AccessType
+    case object Read extends AccessType
+  } 
 
   /**
    * EXERCISE 3
@@ -132,7 +242,7 @@ object documents {
    * permissions that a user has on a set of documents they have access to.
    * Do not store the document contents themselves in this model.
    */
-  type DocPermissions
+  final case class DocPermissions(map: Map[DocId, AccessType])
 }
 
 /**
@@ -182,7 +292,11 @@ object portfolio {
    * Using only sealed traits and case classes, develop a model of a stock
    * exchange. Ensure there exist values for NASDAQ and NYSE.
    */
-  type Exchange
+  sealed trait Exchange
+  object Exchange {
+    case object NASDAQ extends Exchange
+    case object NYSE   extends Exchange
+  }
 
   /**
    * EXERCISE 2
@@ -190,7 +304,11 @@ object portfolio {
    * Using only sealed traits and case classes, develop a model of a currency
    * type.
    */
-  type CurrencyType
+  sealed trait CurrencyType 
+  object CurrencyType {
+    case object USD extends CurrencyType
+    case object EUR extends CurrencyType
+  }
 
   /**
    * EXERCISE 3
@@ -198,15 +316,22 @@ object portfolio {
    * Using only sealed traits and case classes, develop a model of a stock
    * symbol. Ensure there exists a value for Apple's stock (APPL).
    */
-  type StockSymbol
+  final case class StockSymbol(exchange: Exchange, id: String)
+    object StockSymbol {
+      val APPL = StockSymbol(Exchange.NASDAQ, "APPL")
+  }
 
   /**
    * EXERCISE 4
    *
    * Using only sealed traits and case classes, develop a model of a portfolio
    * held by a user of the web application.
+   * 
+   * I want to be able to combine portfolios to create another one, so Map monoid is the natural choice
    */
-  type Portfolio
+
+  final case class Holding(shares: BigDecimal, purchasePrice: BigDecimal, currencyType: CurrencyType) 
+  final case class Portfolio(value: Map[StockSymbol, Set[Holding]])
 
   /**
    * EXERCISE 5
@@ -214,7 +339,7 @@ object portfolio {
    * Using only sealed traits and case classes, develop a model of a user of
    * the web application.
    */
-  type User
+  final case class User(userName: String, portfolio: Portfolio)
 
   /**
    * EXERCISE 6
@@ -222,7 +347,17 @@ object portfolio {
    * Using only sealed traits and case classes, develop a model of a trade type.
    * Example trade types might include Buy and Sell.
    */
-  type TradeType
+  sealed trait TradeType
+  object TradeType {
+    case class Buy(what: What) extends TradeType
+    case class Sell(what: What) extends TradeType
+
+    sealed trait What 
+    object What {
+      case object Shares extends What
+      case object Put extends What
+    }
+  }
 
   /**
    * EXERCISE 7
@@ -231,5 +366,5 @@ object portfolio {
    * which involves a particular trade type of a specific stock symbol at
    * specific prices.
    */
-  type Trade
+  final case class Trade(tt: TradeType, symbol: StockSymbol, shares: BigDecimal)
 }
