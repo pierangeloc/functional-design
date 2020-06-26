@@ -480,6 +480,8 @@ object education {
     def empty: QuizResult = QuizResult(0, 0, 0, Vector.empty)
   }
 
+  // N.B.: Here we are deferring the execution through a function. If we were using ZIO, we would have `UIO[QuizResult]`
+  // It is important to defer because we want to combine things made of pure values, and this is not possible
   final case class Quiz(run: () => QuizResult) { self =>
 
     /**
@@ -511,7 +513,7 @@ object education {
     )
   }
 
-    object Quiz {
+  object Quiz {
     private def grade[A](f: String => A, checker: Checker[A]): QuizResult =
       scala.util.Try {
         val submittedAnswer = f(scala.io.StdIn.readLine())

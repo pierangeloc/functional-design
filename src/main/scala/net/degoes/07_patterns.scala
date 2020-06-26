@@ -1,5 +1,10 @@
 package net.degoes
 
+import _root_.net.degoes.parser.Parser
+import zio.Task
+import cats.data.Validated
+import zio.UIO
+
 /*
  * INTRODUCTION
  *
@@ -28,9 +33,9 @@ object binary_values {
      *
      * for all `a`, `b`, `c`.
      */
-    type SomeType
+    type SomeType = Map[String, Int]
 
-    def compose(left: SomeType, right: SomeType): SomeType = ???
+    def compose(left: SomeType, right: SomeType): SomeType = left 
   }
 
   object Exercise2 {
@@ -66,7 +71,7 @@ object binary_values {
      *
      * for all `a`, `b`.
      */
-    type SomeType
+    type SomeType = Map[String, Int]
 
     def compose(left: SomeType, right: SomeType): SomeType = ???
   }
@@ -101,9 +106,13 @@ object binary_values {
      * combine two queries into one query, such that both results would
      * be queried when the model is executed.
      */
-    type SomeType
+    type SomeType = String => String
 
-    def compose(left: SomeType, right: SomeType): SomeType = ???
+    // type SomeType = Option[Int]
+    // type SomeType = UIO[Int]
+
+    def compose(left: SomeType, right: SomeType): SomeType = left compose right
+
   }
 
   object Exercise6 {
@@ -114,9 +123,8 @@ object binary_values {
      * Choose or create a different type such that your implementation
      * of `compose` represents modeling "both".
      */
-    type SomeType
-
-    def compose(left: SomeType, right: SomeType): SomeType = ???
+    type SomeType = UIO[Int]
+    def compose(left: SomeType, right: SomeType): SomeType = (left zipWith right)(_ + _)
   }
 
   object Exercise7 {
@@ -129,9 +137,9 @@ object binary_values {
      * a data type that represents a query, then this `compose` could
      * model running one query, but if it fails, running another.
      */
-    type SomeType
+    type SomeType = Task[Int]
 
-    def compose(left: SomeType, right: SomeType): SomeType = ???
+    def compose(left: SomeType, right: SomeType): SomeType = left orElse right
   }
 
   object Exercise8 {
@@ -142,9 +150,9 @@ object binary_values {
      * Choose or create a different type such that your implementation
      * of `compose` represents modeling "or".
      */
-    type SomeType
+    type SomeType = Parser[String]
 
-    def compose(left: SomeType, right: SomeType): SomeType = ???
+    def compose(left: SomeType, right: SomeType): SomeType = Parser.OrElse(left, right)
   }
 
   object Exercise9 {
@@ -161,11 +169,11 @@ object binary_values {
      *
      * for all `a`.
      */
-    type SomeType
+    type SomeType = Option[Int]
 
-    def identity: SomeType = ???
+    def identity: SomeType = None
 
-    def compose(left: SomeType, right: SomeType): SomeType = ???
+    def compose(left: SomeType, right: SomeType): SomeType = left orElse right
   }
 
   object Exercise10 {
@@ -208,9 +216,9 @@ object binary_tcs {
      *
      * for all `a`, `b`, `c`, where `~` means "equivalent to".
      */
-    type SomeType[A]
+    type SomeType[A] = Task[A]
 
-    def compose[A, B](left: SomeType[A], right: SomeType[B]): SomeType[(A, B)] = ???
+    def compose[A, B](left: SomeType[A], right: SomeType[B]): SomeType[(A, B)] = left zip right
   }
 
   object Exercise2 {
@@ -246,9 +254,12 @@ object binary_tcs {
      *
      * for all `a`, `b`, `c`, where `~` means "equivalent to".
      */
-    type SomeType[A]
+    type SomeType[A] = Task[A]
 
-    def compose[A, B](left: SomeType[A], right: SomeType[B]): SomeType[Either[A, B]] = ???
+    def compose[A, B](left: SomeType[A], right: SomeType[B]): SomeType[Either[A, B]] = 
+    
+    
+    left.map(Left(_)) orElse right.map(Right(_))
   }
 
   object Exercise4 {
