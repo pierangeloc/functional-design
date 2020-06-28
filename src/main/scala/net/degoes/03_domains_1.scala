@@ -1,8 +1,5 @@
 package net.degoes
 
-import _root_.net.degoes.expr.CalculatedValue
-import java.time.DayOfWeek
-
 /*
  * INTRODUCTION
  *
@@ -12,7 +9,7 @@ import java.time.DayOfWeek
  *
  * 2. Constructors that allow constructing simple solutions.
  *
- * 3. Operators that solving more complex problems by transforming
+ * 3. Operators that solve more complex problems by transforming
  *    and combining solutions for subproblems.
  *
  * Functional domains allow modeling solutions to problems in a specific domain.
@@ -104,7 +101,7 @@ object spreadsheet {
       def sum(that: CalculatedValue): CalculatedValue = CalculatedValue { spreadsheet =>
         (self.calculate(spreadsheet), that.calculate(spreadsheet)) match {
           case (Dbl(v1), Dbl(v2)) => Dbl(v1 + v2)
-          case _                  => Error("Cannot add two values")
+          case _                  => Error("Cannot add two values as both should be double")
         }
       }
     }
@@ -131,12 +128,16 @@ object spreadsheet {
    * EXERCISE 6
    *
    * Describe a cell whose contents are the sum of other cells.
+   * E.g. put in cell (4, 5) the sum of all cells in column 5
    */
-lazy val cell1: Cell = Cell(4, 2, CalculatedValue(spreadsheet => 
-    ???))
-//     spreadsheet.scan(Range.column(5)).foldLeft(CalculatedValue.const(Dbl(0))) {
-//       case (acc, cell) => acc.sum(CalculatedValue.const(cell.contents))
-//     }))
+  import CellContents._
+  lazy val cell1: Cell = Cell(4, 2, CalculatedValue{ spreadsheet => 
+      spreadsheet.scan(Range.column(5)).foldLeft(CalculatedValue.const(Dbl(0))) {
+        case (acc, cell) => acc.sum(CalculatedValue.const(cell.contents))
+        }
+      }
+    )
+
 }
 
 /**

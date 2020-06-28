@@ -2,7 +2,7 @@ package net.degoes
 
 import java.io.SequenceInputStream
 import scala.util.Try
-import _root_.net.degoes.data_processing.Schema
+
 /*
  * INTRODUCTION
  *
@@ -300,7 +300,11 @@ object contact_processing {
      * Add an `protect` operator that returns a new schema mapping that
      * preserve the specified column names in the final result.
      */
-    def protect(columnNames: Set[String]): SchemaMapping = ???
+    def protect(columnNames: Set[String]): SchemaMapping = 
+    SchemaMapping { csv =>
+      val preservedCols = csv.columnNames.filterNot(columnNames.contains(_))
+      Success(Nil, preservedCols.foldLeft(csv)((csv1, col) => csv1.delete(col)))
+    }
   }
   object SchemaMapping {
 
@@ -309,7 +313,9 @@ object contact_processing {
      *
      * Add a constructor for `SchemaMapping` that renames a column.
      */
-    def rename(oldName: String, newName: String): SchemaMapping = ???
+    def rename(oldName: String, newName: String): SchemaMapping = SchemaMapping {
+      csv => MappingResult.Success(Nil, csv.rename(oldName, newName))
+    }
 
     /**
      * EXERCISE 5
