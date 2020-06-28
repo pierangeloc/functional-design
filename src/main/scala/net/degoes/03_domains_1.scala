@@ -1,4 +1,6 @@
 package net.degoes
+import net.degoes.etl.DataValue.DateTime
+import net.degoes.etl.DataValue.NA
 
 /*
  * INTRODUCTION
@@ -213,7 +215,7 @@ object etl {
   object DataRepo {
     case class Ftp(server: String, port: Int) extends DataRepo
     case class S3(bucket: String) extends DataRepo
-    case class JDBC(bucket: String) extends DataRepo
+    case class JDBC(server: String, auth: String, db: String) extends DataRepo
   }
 
   /**
@@ -335,7 +337,12 @@ object etl {
      *
      * To replace nulls in the specified column with a specified value.
      */
-    def replaceNulls(column: String, defaultValue: DataValue): Pipeline = ???
+    def replaceNulls(column: String, defaultValue: DataValue): Pipeline = Pipeline { () =>
+      self.run().map(dr => dr.map(column) {
+        case x if x.dataType == DataType.NA => defaultValue
+        case other => other
+      }) 
+    }
   }
   object Pipeline {
 
